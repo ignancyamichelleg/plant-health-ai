@@ -221,3 +221,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# project
+data/*
+!data/.gitkeep
+mlruns/
+models/
+logs/
+.env
+*.keras
+*.h5
+.ipynb_checkpoints/
