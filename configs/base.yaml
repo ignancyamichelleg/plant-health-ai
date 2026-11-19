@@ -18,3 +18,11 @@ training:
 mlflow:
   tracking_uri: mlruns
   experiment_name: plant-health
+
+
+validation:
+  min_side: 64
+  brightness_min: 30
+  brightness_max: 230
+  blur_min: 50
+  class_share_tolerance: 0.10
