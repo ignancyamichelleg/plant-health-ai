@@ -14,7 +14,10 @@ MANIFEST_PATH = Path("data/manifest.csv")
 def sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
-
+def dataset_hash(df: pd.DataFrame) -> str:
+    """Short fingerprint of the dataset content (changes if any image changes)."""
+    joined = "".join(sorted(df["sha256"]))
+    return hashlib.sha256(joined.encode()).hexdigest()[:12]
 def build_manifest(raw_dir: str | Path) -> pd.DataFrame:
     raw_dir = Path(raw_dir)
     rows = []

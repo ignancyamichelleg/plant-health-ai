@@ -1,4 +1,7 @@
 seed: 42
+name: default
+model: small_cnn
+augmentation: false
 
 data:
   raw_dir: data/raw
@@ -14,11 +17,16 @@ training:
   epochs: 30
   learning_rate: 0.001
   early_stopping_patience: 5
+  dropout: 0.3
+
+paths:
+  models_dir: models
+  reports_dir: reports
 
 mlflow:
-  tracking_uri: mlruns
+  tracking_uri: sqlite:///mlflow.db
+  artifact_root: mlruns
   experiment_name: plant-health
-
 
 validation:
   min_side: 64
