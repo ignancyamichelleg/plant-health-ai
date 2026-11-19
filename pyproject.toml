@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plant-health"
+version = "0.1.0"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+  "tensorflow>=2.16",
+  "mlflow",
+  "pandas",
+  "pillow",
+  "pandera",
+  "pyyaml",
+  "imagehash",
+  "datasets",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
