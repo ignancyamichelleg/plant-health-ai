@@ -1,0 +1,20 @@
+seed: 42
+
+data:
+  raw_dir: data/raw
+  image_size: 160
+  batch_size: 32
+
+classes:
+  - angular_leaf_spot
+  - bean_rust
+  - healthy
+
+training:
+  epochs: 30
+  learning_rate: 0.001
+  early_stopping_patience: 5
+
+mlflow:
+  tracking_uri: mlruns
+  experiment_name: plant-health
