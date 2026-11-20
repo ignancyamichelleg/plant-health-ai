@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#166534">
+
+  <title>PlantHealth AI | Bean Leaf Disease Detection</title>
+
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+
+<body>
+  <main class="app-container">
+
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">🌿</span>
+        <h1>PlantHealth AI</h1>
+      </div>
+
+      <p class="subtitle">
+        AI-powered bean leaf disease detection
+      </p>
+    </header>
+
+    <section class="card upload-section">
+      <h2>Analyze a bean leaf</h2>
+
+      <p class="description">
+        Upload a clear photograph of a bean leaf to identify
+        possible signs of disease.
+      </p>
+
+      <label for="image-input" class="upload-area" id="upload-area">
+        <span class="upload-icon" aria-hidden="true">📷</span>
+        <span class="upload-title">Choose a leaf photo</span>
+        <span class="upload-hint">
+          Take a photo or select one from your device
+        </span>
+        <span class="upload-formats">
+          JPEG, PNG, WebP · Maximum 8 MB
+        </span>
+      </label>
+
+      <input
+        type="file"
+        id="image-input"
+        accept="image/jpeg,image/png,image/webp"
+        aria-label="Select a bean leaf image"
+        hidden
+      >
+
+      <div class="image-preview" id="preview-container" hidden>
+        <img id="image-preview" alt="Selected bean leaf photograph">
+        <p id="file-name"></p>
+      </div>
+
+      <button id="analyze-button" class="primary-button" disabled>
+        Analyze leaf
+      </button>
+
+      <p id="loading-message" class="loading-message" role="status" hidden>
+        Analyzing your image...
+      </p>
+
+      <p id="error-message" class="error-message" role="alert" hidden></p>
+    </section>
+
+    <section
+      class="card results-section"
+      id="results-section"
+      aria-live="polite"
+      hidden
+    >
+      <h2>Analysis results</h2>
+
+      <div class="prediction-summary">
+        <span class="result-label">Predicted condition</span>
+        <h3 id="predicted-class"></h3>
+        <span id="prediction-status" class="status-badge"></span>
+      </div>
+
+      <div class="confidence-section">
+        <div class="confidence-header">
+          <span>Prediction confidence</span>
+          <strong id="confidence-value"></strong>
+        </div>
+
+        <div
+          class="progress-track"
+          id="confidence-track"
+          role="progressbar"
+          aria-label="Prediction confidence"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div id="confidence-bar" class="progress-bar"></div>
+        </div>
+      </div>
+
+      <div class="probabilities-section">
+        <h3>Class probabilities</h3>
+        <div id="probabilities-list"></div>
+      </div>
+
+      <div class="quality-section">
+        <h3>Image quality</h3>
+        <p id="quality-message"></p>
+      </div>
+
+      <p class="model-info" id="model-version"></p>
+    </section>
+
+    <footer class="app-footer">
+      <p>
+        PlantHealth AI is an educational machine learning prototype.
+        Predictions are not a substitute for expert agricultural assessment.
+      </p>
+    </footer>
+
+  </main>
+</body>
+</html>

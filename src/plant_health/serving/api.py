@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
 
 from plant_health.monitoring.quality import image_quality
@@ -51,6 +53,18 @@ def create_app(predictor=None):
         version="0.1.0",
         lifespan=lifespan,
     )
+
+    static_dir = Path(__file__).resolve().parent / "static"
+
+    app.mount(
+        "/static",
+        StaticFiles(directory=static_dir),
+        name="static",
+    )
+
+    @app.get("/", include_in_schema=False)
+    def home():
+        return FileResponse(static_dir / "index.html")
 
     @app.get("/health", response_model=HealthResponse)
     def health():
