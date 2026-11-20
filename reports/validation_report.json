@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "n_images": 1295,
+  "n_per_split": {
+    "train": 1034,
+    "validation": 133,
+    "test": 128
+  },
+  "issues": [],
+  "warnings": [],
+  "rules": {
+    "min_side": 64,
+    "brightness_min": 30,
+    "brightness_max": 230,
+    "blur_min": 50,
+    "class_share_tolerance": 0.1
+  },
+  "observed": {
+    "brightness_min": 60.798095703125,
+    "brightness_max": 181.1548309326172,
+    "blur_min": 163.9307098388672
+  }
+}

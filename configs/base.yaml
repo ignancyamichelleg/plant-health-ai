@@ -1,0 +1,36 @@
+seed: 42
+name: default
+model: small_cnn
+augmentation: false
+
+data:
+  raw_dir: data/raw
+  image_size: 160
+  batch_size: 32
+
+classes:
+  - angular_leaf_spot
+  - bean_rust
+  - healthy
+
+training:
+  epochs: 30
+  learning_rate: 0.001
+  early_stopping_patience: 5
+  dropout: 0.3
+
+paths:
+  models_dir: models
+  reports_dir: reports
+
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+  artifact_root: mlruns
+  experiment_name: plant-health
+
+validation:
+  min_side: 64
+  brightness_min: 30
+  brightness_max: 230
+  blur_min: 50
+  class_share_tolerance: 0.10

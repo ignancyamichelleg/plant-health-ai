@@ -232,3 +232,10 @@ logs/
 *.keras
 *.h5
 .ipynb_checkpoints/
+
+# stray virtual environment files
+Scripts/
+pyvenv.cfg
+Include/
+Lib/
+mlflow.db
