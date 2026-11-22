@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plant-health"
+version = "0.1.0"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+  "tensorflow>=2.16",
+  "python-multipart",
+  "uvicorn",
+  "fastapi",
+  "mlflow",
+  "pandas",
+  "pillow",
+  "pandera",
+  "pyyaml",
+  "imagehash",
+  "datasets",
+  "scikit-learn"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff","httpx"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"plant_health.serving" = ["static/*.html", "static/*.css", "static/*.js"]

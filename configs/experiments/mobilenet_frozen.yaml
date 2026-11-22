@@ -1,0 +1,11 @@
+name: mobilenet_frozen
+
+model: mobilenet_v2
+
+augmentation: true
+
+training:
+  learning_rate: 0.0001
+  epochs: 20
+  dropout: 0.3
+  early_stopping_patience: 5
