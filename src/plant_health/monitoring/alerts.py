@@ -16,7 +16,6 @@ from pathlib import Path
 import pandas as pd
 
 from plant_health.monitoring.logs import last_window, read_requests
-from plant_health.monitoring.reference import load_reference
 from plant_health.monitoring.settings import load_monitoring_config
 
 # Response plan: what the team does when each rule fires.
@@ -36,6 +35,14 @@ ACTIONS = {
     "latency_p95": "Service is slow. Check CPU/memory, model size and concurrent "
     "load; scale up or roll back the last deployment.",
 }
+
+
+def load_reference(path: str | Path) -> dict | None:
+    """Read reports/reference_stats.json written by the training pipeline."""
+    path = Path(path)
+    if not path.is_file():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @dataclass
@@ -98,14 +105,14 @@ def check_window(df: pd.DataFrame, cfg: dict, reference: dict | None) -> list[Al
                  f"mean brightness {s['brightness_mean']:.0f} vs reference "
                  f"{reference['brightness']['mean']:.0f}")
 
-        ref_blur = reference["blur"]["median"]
+        ref_blur = reference["blur"]["p50"]
         if ref_blur > 0:
             ratio = s["blur_median"] / ref_blur
             if ratio < a["blur_median_ratio_min"]:
                 fire("blur_drop", ratio, a["blur_median_ratio_min"],
                      f"median sharpness is {ratio:.0%} of the reference")
 
-        ref_conf = (reference.get("confidence") or {}).get("mean")
+        ref_conf = (reference.get("confidence_validation") or {}).get("mean")
         if ref_conf is not None:
             drop = ref_conf - s["confidence_mean"]
             if drop > a["mean_confidence_drop_max"]:
@@ -113,7 +120,7 @@ def check_window(df: pd.DataFrame, cfg: dict, reference: dict | None) -> list[Al
                      f"mean confidence {s['confidence_mean']:.2f} vs reference "
                      f"{ref_conf:.2f}")
 
-        ref_share = reference.get("class_share") or {}
+        ref_share = reference.get("class_mix") or {}
         classes = set(ref_share) | set(s["class_share"])
         if classes:
             gaps = {

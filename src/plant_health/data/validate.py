@@ -9,7 +9,6 @@ import pandera.pandas as pa
 from plant_health.config import load_config
 from plant_health.data.manifest import build_manifest
 
-REPORT_PATH = Path("reports/validation_report.json")
 SPLITS = ["train", "validation", "test"]
 
 
@@ -122,18 +121,27 @@ def validate(df: pd.DataFrame, cfg: dict) -> dict:
     }
 
 
-def main() -> int:
-    cfg = load_config()
-    report = validate(build_manifest(cfg["data"]["raw_dir"]), cfg)
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
+def write_report(report: dict, reports_dir: str | Path) -> Path:
+    path = Path(reports_dir) / "validation_report.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    return path
 
+
+def print_summary(report: dict) -> None:
     status = "PASSED" if report["passed"] else "FAILED"
     print(f"Validation {status}: {report['n_images']} images")
     for issue in report["issues"]:
         print(f"  FAIL {issue['check']} ({issue['count']}): {issue['examples'][:2]}")
     for warning in report["warnings"]:
         print(f"  WARN {warning['check']} ({warning['count']})")
+
+
+def main() -> int:
+    cfg = load_config()
+    report = validate(build_manifest(cfg["data"]["raw_dir"]), cfg)
+    write_report(report, cfg["paths"]["reports_dir"])
+    print_summary(report)
     return 0 if report["passed"] else 1
 
 

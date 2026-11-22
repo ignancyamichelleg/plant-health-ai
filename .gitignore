@@ -226,7 +226,7 @@ __marimo__/
 data/*
 !data/.gitkeep
 mlruns/
-models/
+/models/
 logs/
 .env
 *.keras

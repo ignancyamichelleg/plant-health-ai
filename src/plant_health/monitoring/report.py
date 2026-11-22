@@ -11,9 +11,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from plant_health.monitoring.alerts import ACTIONS, check_window, window_stats
+from plant_health.monitoring.alerts import ACTIONS, check_window, load_reference, window_stats
 from plant_health.monitoring.logs import read_requests
-from plant_health.monitoring.reference import load_reference
 from plant_health.monitoring.settings import load_monitoring_config
 
 
@@ -93,9 +92,10 @@ def render_html(table: pd.DataFrame, latest_alerts: list, reference: dict | None
     else:
         alert_html = "<p>No alerts in the latest window.</p>"
     ref_html = (
-        f"<p>Reference: {html.escape(reference['source'])} ({reference['n']} images), "
+        f"<p>Reference: {html.escape(str(reference.get('source_split')))} split "
+        f"({reference.get('n_images')} images), "
         f"mean brightness {reference['brightness']['mean']:.1f}, "
-        f"median blur {reference['blur']['median']:.1f}.</p>"
+        f"median blur {reference['blur']['p50']:.1f}.</p>"
         if reference else
         "<p>No reference stats found; drift rules were skipped.</p>"
     )

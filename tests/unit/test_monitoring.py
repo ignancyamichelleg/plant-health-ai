@@ -9,18 +9,18 @@ from PIL import Image
 from plant_health.monitoring.alerts import check_window, run
 from plant_health.monitoring.logs import read_requests
 from plant_health.monitoring.quality import image_quality
-from plant_health.monitoring.reference import build_reference
 from plant_health.monitoring.report import build_report
 from plant_health.monitoring.settings import load_monitoring_config, request_status
 from plant_health.monitoring.simulate import degrade
 
+# Same shape as reports/reference_stats.json from the training pipeline.
 REFERENCE = {
-    "source": "test",
-    "n": 100,
-    "brightness": {"mean": 110.0, "median": 110.0},
-    "blur": {"median": 400.0},
-    "class_share": {"angular_leaf_spot": 0.34, "bean_rust": 0.33, "healthy": 0.33},
-    "confidence": {"mean": 0.85},
+    "source_split": "train",
+    "n_images": 100,
+    "brightness": {"mean": 110.0, "p50": 110.0},
+    "blur": {"p50": 400.0},
+    "class_mix": {"angular_leaf_spot": 0.34, "bean_rust": 0.33, "healthy": 0.33},
+    "confidence_validation": {"mean": 0.85},
 }
 CLASSES = ["angular_leaf_spot", "bean_rust", "healthy"]
 
@@ -134,20 +134,6 @@ def test_read_requests_skips_bad_lines(tmp_path):
 def test_read_requests_missing_file(tmp_path):
     assert read_requests(tmp_path / "none.jsonl").empty
 
-
-def test_build_reference_uses_split():
-    manifest = pd.DataFrame({
-        "split": ["train", "validation", "validation"],
-        "label": ["healthy", "healthy", "bean_rust"],
-        "readable": [True, True, True],
-        "brightness": [10.0, 100.0, 120.0],
-        "blur": [1.0, 300.0, 500.0],
-    })
-    ref = build_reference(manifest)
-    assert ref["n"] == 2
-    assert ref["brightness"]["mean"] == 110.0
-    assert ref["class_share"] == {"bean_rust": 0.5, "healthy": 0.5}
-    assert ref["confidence"] is None
 
 
 def test_degrade_lowers_quality():
