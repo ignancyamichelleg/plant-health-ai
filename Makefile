@@ -1,8 +1,9 @@
 CONFIG ?= configs/experiments/baseline_cnn.yaml
 URL ?= http://localhost:8000
 MODE ?= dark
+MODEL ?= models/baseline_cnn
 
-.PHONY: setup data validate train test lint check serve monitor report simulate mlflow-ui
+.PHONY: setup data validate train test lint check serve evaluate select monitor report simulate mlflow-ui
 
 setup:
 	pip install -e ".[dev]"
@@ -23,6 +24,12 @@ lint:
 	ruff check .
 
 check: lint test
+
+evaluate:
+	python -m plant_health.models.evaluate --model $(MODEL)
+
+select:
+	python -m plant_health.models.evaluate --select
 
 serve:
 	uvicorn plant_health.serving.api:app --host 0.0.0.0 --port 8000
