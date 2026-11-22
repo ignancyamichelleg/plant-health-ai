@@ -239,3 +239,9 @@ pyvenv.cfg
 Include/
 Lib/
 mlflow.db
+<<<<<<< HEAD
+=======
+# Track Python model source code while ignoring trained model artifacts.
+!src/plant_health/models/
+!src/plant_health/models/*.py
+>>>>>>> origin/p2/mobilenet-and-serving
