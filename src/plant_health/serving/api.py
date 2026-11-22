@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
 
 from plant_health.monitoring.quality import image_quality
+from plant_health.monitoring.settings import load_monitoring_config, request_status
 from plant_health.serving.predictor import Predictor
 from plant_health.serving.request_logger import log_prediction
 from plant_health.serving.schemas import HealthResponse, PredictionResponse
@@ -25,11 +26,8 @@ CONTENT_TYPE_TO_FORMAT = {
     "image/png": "PNG",
     "image/webp": "WEBP",
 }
-# Provisional thresholds; calibrate with Person 3.
-CONFIDENCE_THRESHOLD = 0.60
-BRIGHTNESS_MIN = 30.0
-BRIGHTNESS_MAX = 230.0
-BLUR_MIN = 50.0
+# Per-request thresholds come from configs/monitoring.yaml (owned by monitoring).
+MONITORING_CONFIG = load_monitoring_config()
 
 
 def create_app(predictor=None):
@@ -120,16 +118,12 @@ def create_app(predictor=None):
 
         result = app.state.predictor.predict(contents)
 
-        if (
-            quality["brightness"] < BRIGHTNESS_MIN
-            or quality["brightness"] > BRIGHTNESS_MAX
-            or quality["blur"] < BLUR_MIN
-        ):
-            status = "low_quality"
-        elif result["confidence"] < CONFIDENCE_THRESHOLD:
-            status = "uncertain"
-        else:
-            status = "ok"
+        status = request_status(
+            result["confidence"],
+            quality["brightness"],
+            quality["blur"],
+            MONITORING_CONFIG,
+        )
 
         latency_ms = (time.perf_counter() - started) * 1000
 
