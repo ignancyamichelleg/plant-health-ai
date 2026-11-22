@@ -1,0 +1,119 @@
+{
+  "n": 133,
+  "accuracy": 0.849624060150376,
+  "macro_f1": 0.8488685643858057,
+  "min_class_recall": 0.7777777777777778,
+  "per_class": {
+    "angular_leaf_spot": {
+      "precision": 0.8409090909090909,
+      "recall": 0.8409090909090909,
+      "f1": 0.8409090909090909,
+      "support": 44
+    },
+    "bean_rust": {
+      "precision": 0.8333333333333334,
+      "recall": 0.7777777777777778,
+      "f1": 0.8045977011494253,
+      "support": 45
+    },
+    "healthy": {
+      "precision": 0.8723404255319149,
+      "recall": 0.9318181818181818,
+      "f1": 0.9010989010989011,
+      "support": 44
+    }
+  },
+  "confusion_matrix": {
+    "labels": [
+      "angular_leaf_spot",
+      "bean_rust",
+      "healthy"
+    ],
+    "rows_true_cols_pred": [
+      [
+        37,
+        5,
+        2
+      ],
+      [
+        6,
+        35,
+        4
+      ],
+      [
+        1,
+        2,
+        41
+      ]
+    ]
+  },
+  "confidence": {
+    "mean_correct": 0.8393139243125916,
+    "mean_wrong": 0.5961371064186096
+  },
+  "slices": {
+    "brightness": [
+      {
+        "bucket": "low",
+        "n": 45,
+        "brightness_min": 72.63978576660156,
+        "brightness_max": 116.50758361816406,
+        "accuracy": 0.8222222222222222,
+        "macro_f1": 0.8231040564373897,
+        "mean_confidence": 0.7570543885231018
+      },
+      {
+        "bucket": "mid",
+        "n": 44,
+        "brightness_min": 116.67578125,
+        "brightness_max": 133.71658325195312,
+        "accuracy": 0.8636363636363636,
+        "macro_f1": 0.8598661357282048,
+        "mean_confidence": 0.8027658462524414
+      },
+      {
+        "bucket": "high",
+        "n": 44,
+        "brightness_min": 133.89537048339844,
+        "brightness_max": 172.1798095703125,
+        "accuracy": 0.8636363636363636,
+        "macro_f1": 0.8228319783197832,
+        "mean_confidence": 0.849456250667572
+      }
+    ],
+    "blur": [
+      {
+        "bucket": "low",
+        "n": 45,
+        "blur_min": 341.8936462402344,
+        "blur_max": 757.6165771484375,
+        "accuracy": 0.9111111111111111,
+        "macro_f1": 0.9162134270493403,
+        "mean_confidence": 0.8157573938369751
+      },
+      {
+        "bucket": "mid",
+        "n": 44,
+        "blur_min": 774.4462280273438,
+        "blur_max": 1156.2366943359375,
+        "accuracy": 0.7954545454545454,
+        "macro_f1": 0.7554280248684839,
+        "mean_confidence": 0.8094135522842407
+      },
+      {
+        "bucket": "high",
+        "n": 44,
+        "blur_min": 1156.369140625,
+        "blur_max": 5702.05224609375,
+        "accuracy": 0.8409090909090909,
+        "macro_f1": 0.8414793092212447,
+        "mean_confidence": 0.7827711701393127
+      }
+    ]
+  },
+  "model": "baseline_cnn",
+  "split": "validation",
+  "version": "baseline_cnn",
+  "run_id": "e1af6859d2dc4ceeb53bec024fe34892",
+  "data_hash": "19e7a4b9a26b"
+}

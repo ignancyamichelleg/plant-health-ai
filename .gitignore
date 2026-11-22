@@ -242,3 +242,6 @@ mlflow.db
 # Track Python model source code while ignoring trained model artifacts.
 !src/plant_health/models/
 !src/plant_health/models/*.py
+
+# model zips (shared via Drive, not Git)
+*.zip
