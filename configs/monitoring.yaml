@@ -1,0 +1,34 @@
+# Monitoring thresholds for PlantHealth AI.
+#
+# Two layers with different jobs:
+#   request: decides the status of ONE prediction (returned to the user).
+#            A dark photo gets "low_quality" and the user is asked to retake it.
+#   alerts:  rules over a window of recent requests (reported to the team).
+#            One dark photo is normal; a window where many photos are dark
+#            means something changed upstream (new phones, lighting, misuse).
+
+request:
+  confidence_min: 0.60      # below this the answer is "uncertain"
+  brightness_min: 30        # mean grayscale 0-255 (same scale as the manifest)
+  brightness_max: 230
+  blur_min: 50              # variance of the Laplacian; lower = blurrier
+
+window:
+  size: 50                  # evaluate the last N requests
+  min_requests: 20          # no alerts on smaller samples (too noisy)
+
+alerts:
+  low_quality_rate_max: 0.20        # share of requests flagged low_quality
+  uncertain_rate_max: 0.30          # share of requests flagged uncertain
+  brightness_mean_shift_max: 40     # |window mean - reference mean|
+  blur_median_ratio_min: 0.50       # window median blur / reference median blur
+  mean_confidence_drop_max: 0.15    # reference mean confidence - window mean
+  class_share_shift_max: 0.25       # max |window share - reference share| per class
+  latency_p95_ms_max: 1000          # operational goal: p95 under ~1 s
+
+paths:
+  request_log: logs/requests.jsonl
+  reference_stats: reports/reference_stats.json
+  alerts_out: reports/alerts.json
+  report_html: reports/monitoring_report.html
+  report_csv: reports/monitoring_windows.csv
