@@ -34,9 +34,13 @@ def windows_table(requests: pd.DataFrame, cfg: dict, reference: dict | None) -> 
     return pd.DataFrame(rows, columns=columns)
 
 
+def _fmt(value: float) -> str:
+    return f"{value:,.0f}" if value >= 10 else f"{value:.1f}"
+
+
 def _svg_line(values: list[float], threshold: float | None, title: str) -> str:
     """Small dependency-free line chart, so the report opens anywhere."""
-    w, h, pad = 420, 140, 28
+    w, h, pad = 420, 140, 36
     if not values:
         return ""
     top = max(values + ([threshold] if threshold is not None else [])) or 1.0
@@ -66,6 +70,8 @@ def _svg_line(values: list[float], threshold: float | None, title: str) -> str:
         f'<line x1="{pad}" x2="{pad}" y1="{pad}" y2="{h - pad}" class="ax"/>'
         f'<line x1="{pad}" x2="{w - pad}" y1="{h - pad}" y2="{h - pad}" class="ax"/>'
         f'{line}<polyline points="{pts}" class="ser"/>{dots}'
+        f'<text x="{pad - 4}" y="{pad + 4}" text-anchor="end" class="lbl">{_fmt(top)}</text>'
+        f'<text x="{pad - 4}" y="{h - pad}" text-anchor="end" class="lbl">0</text>'
         f'<text x="{pad}" y="{h - 8}" class="lbl">window 1</text>'
         f'<text x="{w - pad}" y="{h - 8}" text-anchor="end" class="lbl">'
         f"window {len(values)}</text></svg></figure>"
@@ -109,6 +115,12 @@ def render_html(table: pd.DataFrame, latest_alerts: list, reference: dict | None
 body{{font-family:system-ui,sans-serif;max-width:960px;margin:2rem auto;padding:0 1rem;color:#222}}
 table{{border-collapse:collapse;width:100%;font-size:.85rem;margin:1rem 0}}
 td,th{{border:1px solid #ddd;padding:.3rem .5rem;text-align:left}}
+@media print{{
+body{{margin:0;max-width:none;font-size:10pt}} h1{{font-size:18pt}}
+h2{{font-size:13pt;break-after:avoid}} table{{font-size:7.5pt}}
+figure{{width:47%;margin:0 1% .5rem 0}} svg{{width:100%;height:auto}}
+table,figure,li{{break-inside:avoid}}
+}}
 tr.alert td{{background:#fdecea}}
 figure{{display:inline-block;margin:.5rem}} figcaption{{font-size:.85rem;font-weight:600}}
 .ax{{stroke:#999}} .thr{{stroke:#c62828;stroke-dasharray:4 3}}
@@ -116,7 +128,7 @@ figure{{display:inline-block;margin:.5rem}} figcaption{{font-size:.85rem;font-we
 .lbl{{font-size:10px;fill:#666}}
 </style></head><body>
 <h1>PlantHealth AI monitoring report</h1>
-<p>{total} logged requests in windows of {cfg['window']['size']}.
+<p>{total} logged requests in windows of {cfg['window']['size']} (times in UTC).
 Images are never stored; only quality, confidence and latency are logged.</p>
 {ref_html}
 <h2>Latest window</h2>{alert_html}
@@ -130,8 +142,19 @@ input quality, confidence, predicted-class mix and latency.</p>
 </body></html>"""
 
 
+def _short_ts(value) -> str:
+    """'2026-11-25T05:31:19.32+00:00' -> '2026-11-25 05:31:19' (UTC)."""
+    text = str(value)
+    return text[:19].replace("T", " ") if len(text) >= 19 else text
+
+
 def _table_html(table: pd.DataFrame) -> str:
-    head = "".join(f"<th>{html.escape(c)}</th>" for c in table.columns)
+    table = table.assign(
+        start=table["start"].map(_short_ts),
+        end=table["end"].map(_short_ts),
+        alerts=table["alerts"].fillna("").str.replace(";", ", "),
+    )
+    head = "".join(f"<th>{html.escape(c.replace('_', ' '))}</th>" for c in table.columns)
     rows = []
     for _, r in table.iterrows():
         cls = ' class="alert"' if r["alerts"] else ""
