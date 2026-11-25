@@ -26,6 +26,7 @@ from plant_health.config import load_config
 from plant_health.models.metrics import compute_metrics
 
 TEST_LOCK = "test_evaluation_done.json"
+REFERENCE_FILE = "reference_stats.json"
 
 
 def _bucket(values: pd.Series) -> pd.Series:
@@ -92,6 +93,11 @@ def evaluate_predictions(
             "rows_true_cols_pred": confusion_matrix(y_true, y_pred, labels=labels).tolist(),
         },
         "confidence": {
+            "mean": float(confidence.mean()),
+            "std": float(confidence.std()),
+            "p05": float(np.percentile(confidence, 5)),
+            "p50": float(np.percentile(confidence, 50)),
+            "p95": float(np.percentile(confidence, 95)),
             "mean_correct": float(confidence[y_true == y_pred].mean())
             if (y_true == y_pred).any() else None,
             "mean_wrong": float(confidence[y_true != y_pred].mean())
@@ -142,6 +148,26 @@ def selection_markdown(ranked: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def update_reference(reference_path: Path, winner: dict) -> bool:
+    """Point the monitoring reference at the selected model.
+
+    The training pipeline rewrites reference_stats.json after every run, so its
+    confidence block belongs to whichever experiment ran last. Monitoring must
+    compare live confidence with the model that is actually served.
+    Returns False if there is nothing to update.
+    """
+    conf = winner.get("confidence", {})
+    if not reference_path.is_file() or "p50" not in conf:
+        return False
+    reference = json.loads(reference_path.read_text(encoding="utf-8"))
+    reference["confidence_validation"] = {
+        k: conf[k] for k in ("mean", "std", "p05", "p50", "p95")
+    }
+    reference["selected_model"] = winner["model"]
+    reference_path.write_text(json.dumps(reference, indent=2), encoding="utf-8")
+    return True
+
+
 def run_evaluation(model_dir: Path, split: str, cfg: dict, reports_dir: Path) -> dict:
     """Load a saved model, predict on a split and write the reports."""
     from tensorflow import keras  # imported here so tests of the logic need no TF
@@ -189,9 +215,15 @@ def main() -> None:
                    for p in sorted(reports_dir.glob("eval_*_validation.json"))]
         if not reports:
             parser.error("no reports/eval_*_validation.json found; evaluate models first")
-        md = selection_markdown(select_model(reports))
+        ranked = select_model(reports)
+        md = selection_markdown(ranked)
         (reports_dir / "model_selection.md").write_text(md, encoding="utf-8")
         print(md)
+        if update_reference(reports_dir / REFERENCE_FILE, ranked[0]):
+            print(f"{REFERENCE_FILE}: confidence now from {ranked[0]['model']}")
+        else:
+            print(f"{REFERENCE_FILE} not updated: re-run `make evaluate` for "
+                  f"{ranked[0]['model']} (older reports lack the confidence summary)")
         return
 
     if not args.model:
