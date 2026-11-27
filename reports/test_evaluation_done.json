@@ -1,0 +1,4 @@
+{
+  "model": "baseline_cnn",
+  "macro_f1": 0.8325415214470686
+}
