@@ -1,0 +1,63 @@
+// Architecture diagram source. Rebuild: dot -Tpng -Gdpi=110 docs/architecture.dot -o docs/architecture.png
+digraph G {
+  graph [rankdir=TB, fontname="Helvetica", fontsize=13, nodesep=0.3, ranksep=0.4, pad=0.3, newrank=true, splines=spline, bgcolor="white"];
+  node  [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#f3f8ef", color="#5f8f45", penwidth=1.2, margin="0.15,0.08"];
+  edge  [fontname="Helvetica", fontsize=10, color="#555555", arrowsize=0.7];
+
+  // styles
+  node [];
+  subgraph cluster_data {
+    label=<<b>1 · Data and validation</b>>; style="rounded,filled"; fillcolor="#fafafa"; color="#bbbbbb";
+    hf   [label="Beans dataset\nHugging Face · MIT", shape=cylinder, fillcolor="#f4f4f4", color="#888888"];
+    raw  [label="data/raw/\ntrain 1,034 · val 133 · test 128", shape=cylinder, fillcolor="#eef3fb", color="#5b7db1"];
+    man  [label="manifest.py\nsha256 · size · brightness · blur"];
+    val  [label="validate.py\nschema · corrupt · labels\ncross-split duplicates · quality", shape=diamond, fillcolor="#fdf2e6", color="#c07b2a", style="filled"];
+    hf -> raw [label="download.py"]; raw -> man -> val;
+  }
+
+  subgraph cluster_train {
+    label=<<b>2 · Training pipeline  (make train)</b>>; style="rounded,filled"; fillcolor="#fafafa"; color="#bbbbbb";
+    cfg  [label="configs/*.yaml\nseed 42", shape=cylinder, fillcolor="#eef3fb", color="#5b7db1"];
+    fit  [label="train.py (Keras)\nsmall CNN · CNN+aug · MobileNetV2\nshared preprocess()"];
+    mlf  [label="MLflow\nparams · metrics · artifacts", shape=cylinder, fillcolor="#eef3fb", color="#5b7db1"];
+    reg  [label="models/<name>/\nmodel.keras + metadata.json\ngit_sha · data_hash · run_id", shape=cylinder, fillcolor="#eef3fb", color="#5b7db1"];
+    ev   [label="evaluate.py\nmacro-F1 · per-class recall\nquality slices · select · test once"];
+    ref  [label="reference_stats.json\ntrain quality +\nselected model confidence", shape=cylinder, fillcolor="#eef3fb", color="#5b7db1"];
+    cfg -> fit; fit -> mlf; fit -> reg -> ev -> ref;
+  }
+
+  subgraph cluster_serve {
+    label=<<b>3 · Deployment  (Docker)</b>>; style="rounded,filled"; fillcolor="#fafafa"; color="#bbbbbb";
+    user [label="Phone browser\ncamera or gallery", shape=box, style="rounded,filled", fillcolor="#f4f4f4", color="#888888"];
+    api  [label="FastAPI /predict\ntype · size · format checks"];
+    pred [label="predictor.py\nsame preprocess() → model"];
+    stat [label="status per request\nlow_quality · uncertain · ok", shape=diamond, fillcolor="#fdf2e6", color="#c07b2a", style="filled"];
+    user -> api [label="photo"]; api -> pred -> stat;
+    stat -> user [label="JSON result", constraint=false, style=dashed];
+  }
+
+  subgraph cluster_mon {
+    label=<<b>4 · Monitoring</b>>; style="rounded,filled"; fillcolor="#fafafa"; color="#bbbbbb";
+    mcfg [label="configs/monitoring.yaml\nrequest + alert thresholds", shape=cylinder, fillcolor="#eef3fb", color="#5b7db1"];
+    log  [label="logs/requests.jsonl\nquality · confidence · latency\n(no images stored)", shape=cylinder, fillcolor="#eef3fb", color="#5b7db1"];
+    alr  [label="alerts.py\nlast 50 requests vs reference"];
+    rpt  [label="report.py\nHTML + CSV report"];
+    act  [label="Response plan\nretake · inspect · retrain · roll back", fillcolor="#f4f4f4", color="#888888"];
+    sim  [label="simulate.py\ndark / blurry incident"];
+    log -> alr -> rpt; alr -> act; mcfg -> alr;
+  }
+
+  ci [label="GitHub: PR review on main\nActions CI: ruff · pytest · docker build", fillcolor="#f4f4f4", color="#888888"];
+
+  // cross-lane edges
+  val -> fit  [label="pass"];
+  val -> stop [style=dotted, label="fail"]; stop [label="training stops", fillcolor="#f4f4f4", color="#888888"];
+  reg -> pred [label="selected model", penwidth=2, color="#333333"];
+  ref -> alr  [label="baseline"];
+  mcfg -> stat [label="thresholds"];
+  stat -> log [label="one line per request"];
+  sim -> api  [style=dotted, label="test traffic"];
+
+  // stack lanes vertically
+  rpt -> ci [style=invis];
+}

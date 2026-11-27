@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python environments and caches
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+*.egg-info
+.mypy_cache
+
+# Local configuration
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Datasets and model artifacts
+data/
+models/
+*.keras
+*.h5
+*.hdf5
+*.tflite
+
+# Experiments and generated outputs
+mlruns/
+mlartifacts/
+logs/
+reports/
+notebooks/
+*.log
+
+# Tests and development files
+tests/
+.coverage
+htmlcov/
+
+# Docker-related local files
+docker-compose.override.yml
+
+# Python packaging outputs
+build/
+dist/
+
+
+# Local databases and archives
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.zip

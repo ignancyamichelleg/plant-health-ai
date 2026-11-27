@@ -1,0 +1,48 @@
+{
+  "window": {
+    "n": 50,
+    "start": "2026-11-25T05:31:20.732894+00:00",
+    "end": "2026-11-25T05:31:22.033457+00:00",
+    "low_quality_rate": 1.0,
+    "uncertain_rate": 0.0,
+    "brightness_mean": 18.316419677734373,
+    "blur_median": 21.855985641479492,
+    "confidence_mean": 0.9965692472457885,
+    "latency_p95_ms": 26.43962325009852,
+    "class_share": {
+      "bean_rust": 1.0
+    }
+  },
+  "reference_used": true,
+  "skipped_log_lines": 0,
+  "alerts": [
+    {
+      "rule": "low_quality_rate",
+      "value": 1.0,
+      "threshold": 0.2,
+      "message": "100% of recent photos were low quality",
+      "action": "Inputs are degraded. Keep rejecting/asking for retakes; check whether a new device, app change or lighting condition is the cause."
+    },
+    {
+      "rule": "brightness_shift",
+      "value": 105.3325,
+      "threshold": 40,
+      "message": "mean brightness 18 vs reference 124",
+      "action": "Input distribution has shifted. Inspect a sample of recent requests and the upstream capture path before trusting predictions."
+    },
+    {
+      "rule": "blur_drop",
+      "value": 0.0216,
+      "threshold": 0.5,
+      "message": "median sharpness is 2% of the reference",
+      "action": "Photos are much blurrier than training data. Inspect samples; update capture guidance on the phone page."
+    },
+    {
+      "rule": "class_share_shift",
+      "value": 0.6634,
+      "threshold": 0.25,
+      "message": "'bean_rust' share is 100% vs reference 34%",
+      "action": "Predicted class mix differs from the reference. Check for a real-world change (season, outbreak) or a model/serving bug."
+    }
+  ]
+}
