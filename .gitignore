@@ -245,3 +245,14 @@ mlflow.db
 
 # model zips (shared via Drive, not Git)
 *.zip
+
+
+# PlantHealth AI local runtime artifacts
+.env.*
+!.env.example
+
+mlflow.db-wal
+mlflow.db-shm
+mlflow.db-journal
+
+/mlartifacts/

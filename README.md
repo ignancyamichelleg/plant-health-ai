@@ -11,6 +11,25 @@ training, experiment tracking, model selection, inference
 serving, containerization, automated testing and
 operational monitoring.
 
+## Table of contents
+
+- [1. Project overview](#1-project-overview)
+- [2. System architecture](#2-system-architecture)
+- [3. Dataset](#3-dataset)
+- [4. Installation](#4-installation)
+- [5. Training and experiment tracking](#5-training-and-experiment-tracking)
+- [6. Model evaluation and selection](#6-model-evaluation-and-selection)
+- [7. Model artifacts and provenance](#7-model-artifacts-and-provenance)
+- [8. Native application deployment](#8-native-application-deployment)
+- [9. Docker deployment](#9-docker-deployment)
+- [10. Monitoring and reliability](#10-monitoring-and-reliability)
+- [11. Automated testing and continuous integration](#11-automated-testing-and-continuous-integration)
+- [12. Makefile commands](#12-makefile-commands)
+- [13. Repository structure](#13-repository-structure)
+- [14. Limitations and future work](#14-limitations-and-future-work)
+- [15. Team contributions](#15-team-contributions)
+- [16. Resources](#16-resources)
+
 ## 1. Project overview
 
 The application classifies bean leaf images into three
@@ -26,6 +45,49 @@ probabilities and image-quality feedback.
 
 The system is an educational prototype and is not intended
 to replace professional agricultural diagnosis.
+
+### Problem definition and intended users
+
+The practical problem is supporting preliminary identification
+of common bean leaf diseases through accessible image-based
+screening. Potential users include growers, agricultural field
+workers and agricultural students. These are intended user
+groups, not populations with whom formal user testing has
+been conducted.
+
+The machine learning task is supervised three-class image
+classification. The unit of prediction is one submitted bean
+leaf image. The input is an RGB image transformed into a
+160 x 160 x 3 tensor, and the target is one of the three
+predefined categories.
+
+An image-based model is appropriate because the target
+categories are associated with visible leaf characteristics.
+A custom CNN provides a practical baseline against which
+augmentation and transfer learning can be evaluated.
+
+### Evaluation and operational success criteria
+
+Predictive performance is assessed primarily using validation
+macro-F1, complemented by accuracy and per-class recall.
+
+Operational acceptance is assessed through:
+
+- Successful inference using the documented API contract.
+- Consistent predictions across tested deployment environments.
+- Shared preprocessing between training and inference.
+- Explicit feedback for low-quality and uncertain inputs.
+- Detection of deliberately degraded input traffic.
+- Passing automated tests and static code checks.
+
+The monitoring configuration defines a P95 latency alert
+threshold of 1,000 ms. This is an operational threshold,
+not a production service-level guarantee.
+
+These criteria summarize the retrospective evaluation
+framework used to assess the prototype. No prospective
+minimum macro-F1 acceptance threshold or formal user
+satisfaction target was established.
 
 ## 2. System architecture
 
@@ -66,6 +128,25 @@ class labels, schema consistency, image quality and
 cross-split duplication.
 
 See [DATA.md](DATA.md) for additional dataset information.
+
+### Dataset methodology and limitations
+
+The original dataset splits are preserved. Training data are
+used for fitting model parameters, validation data for model
+comparison and selection, and test data for final held-out
+assessment.
+
+The validation pipeline checks data integrity, class
+consistency, image quality and cross-split duplication
+to reduce data leakage risk.
+
+The verified dataset validation report covers all 1,295
+images and records no validation issues or warnings.
+
+Performance may differ under unfamiliar lighting, backgrounds,
+camera conditions, disease severity or geographic environments.
+Other plant species, diseases and mixed conditions are outside
+the defined classification task.
 
 ## 4. Installation
 
@@ -119,6 +200,35 @@ data/raw/
 └── test/
 ```
 
+### Independent reproducibility verification
+
+An independent checkout of commit
+`55067f43b20b1bbff4549a7a634800ee7b00410c`
+was used to verify installation and execution.
+
+| Verification | Observed result |
+|---|---|
+| Fresh Python virtual environment | Installation successful |
+| Dependency consistency | No broken requirements |
+| Required package imports | 13/13 passed |
+| Static code checks | Passed |
+| Automated tests at that revision | 78/78 passed |
+| Independently downloaded dataset | 1,295 images |
+| Dataset file comparison | 1,295/1,295 byte-identical |
+| Dataset validation report | Matched the official report |
+| Independent native deployment | Successful |
+| Cross-environment inference checks | 74/74 passed |
+
+Verification used Python 3.11.18 on macOS with Apple Silicon.
+Dependencies were installed into a new virtual environment
+rather than copied from the original environment.
+
+These results establish reproducibility of the tested
+installation, dataset acquisition and inference workflow
+at the recorded revision. They do not establish deterministic
+retraining or guarantee identical results with future
+dependency versions and upstream dataset revisions.
+
 ## 5. Training and experiment tracking
 
 Three candidate architectures are implemented:
@@ -140,6 +250,15 @@ Experiment-specific YAML files can override these settings.
 The repository's MobileNetV2 configuration specifies a
 learning rate of 0.0001, 20 maximum epochs and an early
 stopping patience of 5.
+
+The historical configuration at commit `519e2a8` specifies
+60 maximum epochs and patience 10 for the two CNN experiments.
+The MobileNetV2 experiment overrides these values with
+20 maximum epochs and patience 5.
+
+These are the effective committed configuration values.
+Original MLflow records are required to independently confirm
+the actual parameters used in each official training run.
 
 ### Run training experiments
 
@@ -187,6 +306,16 @@ Official validation results:
 
 **Selected model: baseline_cnn.**
 
+The baseline CNN achieved the highest validation macro-F1,
+accuracy and minimum per-class recall among the candidates.
+Its macro-F1 exceeded the augmented CNN by approximately
+2.48 percentage points and MobileNetV2 by 4.04 percentage points.
+
+The selection is supported by observed validation results
+rather than model complexity or architectural preference.
+These experiments do not establish that augmentation or
+transfer learning is inherently inferior.
+
 Model selection prioritizes validation macro-F1, with
 minimum per-class recall as the tie-breaking criterion.
 
@@ -218,6 +347,28 @@ model as a coordinated team activity.
 The validation results above must not be interpreted as
 held-out test performance.
 
+### Failure analysis
+
+The selected baseline CNN achieved validation recall of
+84.09% for angular leaf spot, 77.78% for bean rust and
+93.18% for healthy leaves.
+
+Bean rust therefore had the lowest recall for the selected
+model. For frozen MobileNetV2, angular leaf spot was the
+weakest class, with recall of 63.64%.
+
+Per-class results, confusion matrices, misclassified examples
+and image-quality slices are available in the evaluation
+outputs under `reports/`.
+
+These analyses identify potential failure modes but do not
+establish causal relationships between image quality and
+classification errors.
+
+The final-evaluation guard is local to the evaluation
+environment. It does not prevent repeated test evaluation
+across independent machines or repository checkouts.
+
 ## 7. Model artifacts and provenance
 
 Each trained model is stored with its serving metadata:
@@ -246,6 +397,34 @@ the training pipeline. They are not committed to Git.
 For the official deployment, use the distributed
 baseline_cnn model and its corresponding metadata.
 
+### Official experiment traceability
+
+| Model | MLflow run ID |
+|---|---|
+| baseline_cnn | `e1af6859d2dc4ceeb53bec024fe34892` |
+| cnn_aug | `b1fbe83ba2e34849b8688d5081be7fb2` |
+| mobilenet_frozen | `159d85e0b50d467e86f215e22acb1f6d` |
+
+All three official model metadata records identify training
+commit `519e2a8` and data hash `19e7a4b9a26b`.
+
+The selected model artifact has SHA-256 fingerprint:
+
+`e97342155daaa482d76b65da74b96de39752be6dd9179ee0499034bc5d85e0de`
+
+Its corresponding metadata fingerprint is:
+
+`f02eb4841a3ae7bd2e1f2aba8674b84070e00b22fd00bce47fccb4c616377c3f`
+
+Official metadata and evaluation reports were reconciled
+during integration. Original historical MLflow database
+records and associated artifacts constitute separate
+experiment evidence.
+
+An independently executed MobileNetV2 development experiment
+has run ID `1b9108ec1a8f45f588db0ac4f33a0087`.
+It is distinct from the official MobileNetV2 experiment.
+
 ## 8. Native application deployment
 
 From the repository root, with the virtual environment
@@ -267,6 +446,23 @@ The responsive web interface supports image submission,
 image preview, prediction results, class probabilities
 and quality or uncertainty feedback.
 
+### Runtime configuration
+
+The supported environment variables are documented in
+`.env.example`.
+
+| Variable | Default |
+|---|---|
+| `PLANT_HEALTH_MODEL_DIR` | `models/best` |
+| `PLANT_HEALTH_MONITORING_CONFIG` | `configs/monitoring.yaml` |
+| `PLANT_HEALTH_REQUEST_LOG` | `logs/requests.jsonl` |
+
+Set these variables in the shell or container environment
+before launching the application. The `.env.example` file
+is a reference template and is not automatically loaded.
+
+The Docker image sets its model directory to `/app/models/best`.
+
 ### API endpoints
 
 | Method | Endpoint | Purpose |
@@ -280,7 +476,21 @@ The prediction endpoint accepts multipart image uploads
 using the field name `file`.
 
 Supported image formats include JPEG, PNG and WebP.
-The maximum upload size is 8 MiB.
+The maximum uploaded file size is 8 MiB. Decoded image
+dimensions are additionally limited to 25 million pixels.
+
+The API checks supported content types and image formats,
+handles corrupted images and rejects unsafe image dimensions.
+
+Oversized files and images exceeding the decoded-image
+limit receive an HTTP 413 response. Invalid and unsupported
+images receive appropriate client-error responses.
+
+The file-size check is applied within the prediction endpoint.
+It is not an infrastructure-level HTTP request-body limit.
+
+These controls reduce resource-exhaustion risks but do not
+constitute comprehensive production security.
 
 Example prediction request:
 
@@ -309,6 +519,35 @@ Prediction statuses are:
 | low_quality | Image fails one or more quality thresholds |
 
 An `ok` status does not guarantee a correct classification.
+
+### Recorded prediction response
+
+The following response was captured during independent
+deployment verification at commit `55067f4`. It is an actual
+response rather than an illustrative reconstruction.
+
+```json
+{
+  "request_id": "2738b023-c6fe-43f5-a24f-1d93ada2908e",
+  "status": "uncertain",
+  "predicted_class": "bean_rust",
+  "confidence": 0.5094732046127319,
+  "probabilities": {
+    "angular_leaf_spot": 0.012794477865099907,
+    "bean_rust": 0.5094732046127319,
+    "healthy": 0.4777323305606842
+  },
+  "quality": {
+    "brightness": 89.16285705566406,
+    "blur": 3183.79638671875
+  },
+  "model_version": "baseline_cnn",
+  "latency_ms": 34.384208265691996
+}
+```
+
+The recorded latency is specific to this request and
+environment, not a formal performance benchmark.
 
 ## 9. Docker deployment
 
@@ -371,6 +610,40 @@ statuses and probability distributions.
 This establishes consistency for the tested inputs, not
 general classification accuracy or exhaustive platform
 equivalence.
+
+### Training-serving consistency and deployment verification
+
+Training and inference use shared image preprocessing.
+Images are converted to RGB, resized using a centered crop
+to 160 x 160 pixels and represented as float32 values
+in the range 0-255. Model-specific scaling is incorporated
+within the model architecture.
+
+The predictor loads the saved model and corresponding
+metadata, preserving the expected input specification
+and class ordering.
+
+Independent deployment verification extended the comparison
+to three environments:
+
+- Original native Python application.
+- Docker-containerized application.
+- Native application launched from a fresh repository checkout.
+
+Three validation images were submitted to each environment,
+producing nine actual prediction requests.
+
+All 74 verification checks passed, including six exact
+cross-environment probability comparisons.
+
+Two of the three distinct images were correctly classified.
+The remaining image received an uncertain prediction status.
+This small demonstration is not an estimate of model accuracy.
+
+The independent verification was conducted at commit
+`55067f4`, before the subsequent API security improvements.
+The official model artifacts were preserved unchanged
+during those improvements.
 
 ## 10. Monitoring and reliability
 
@@ -493,6 +766,46 @@ It does not establish real-world drift detection accuracy.
 The repository also contains the team's official
 monitoring reports.
 
+### Operational incident response
+
+During the controlled degradation experiment, mean model
+confidence increased by 16.51 percentage points while all
+50 degraded inputs were flagged as low quality.
+
+All 50 degraded inputs were classified as bean rust.
+This distribution shift is an operational proxy signal,
+not evidence of changing disease prevalence or a measured
+reduction in predictive accuracy.
+
+Recommended operational response:
+
+| Signal | Recommended action |
+|---|---|
+| High low-quality rate | Investigate image acquisition and request clearer images |
+| Brightness or blur shift | Review lighting, focus and camera conditions |
+| High uncertainty rate | Investigate unfamiliar or ambiguous inputs |
+| Confidence degradation | Review input distributions and collect labeled examples |
+| Predicted-class share shift | Investigate possible input or population changes |
+| Excessive latency | Investigate resource utilization and service performance |
+
+Following mitigation, evaluate subsequent monitoring windows
+to determine whether the affected signals return to acceptable
+levels.
+
+If abnormalities persist, obtain representative labeled
+examples and reassess model performance before considering
+retraining.
+
+When ground-truth labels become available, compare predictions
+with confirmed labels to calculate actual performance metrics,
+including macro-F1, accuracy and per-class recall.
+
+Until labels are available, monitoring signals indicate
+potential problems rather than measured predictive accuracy.
+
+The controlled experiment verified incident detection.
+A separate post-incident recovery window was not evaluated.
+
 ## 11. Automated testing and continuous integration
 
 Run the complete automated test suite:
@@ -510,6 +823,30 @@ ruff check .
 The integrated implementation at commit `3229238`
 passed 78 automated tests locally, with no failures.
 
+Following the API security improvements, the updated
+implementation passed all 82 automated tests.
+
+| Verification | Result |
+|---|---|
+| Complete automated test suite | 82/82 passed |
+| API-specific tests | 14/14 passed |
+| Failures, errors and skipped tests | 0 |
+| Full test execution time | 11.28 seconds |
+| Ruff static code checks | Passed |
+| Operational request logs | Unchanged |
+| Official model artifacts | Unchanged |
+| Official evaluation reports | Unchanged |
+
+The additional API tests cover decoded-image size rejection,
+Pillow decompression error handling, uncertainty independently
+of image quality, and successful confident prediction.
+
+API tests use isolated request logs to prevent automated
+testing from contaminating operational monitoring evidence.
+
+The full regression run produced 287 third-party dependency
+deprecation warnings, consistent with the earlier baseline.
+
 The test suite covers data validation, preprocessing,
 model architecture, training, evaluation, prediction
 serving, request logging, monitoring and pipeline
@@ -524,6 +861,11 @@ The GitHub Actions workflow executes:
 
 The workflow is triggered by pull requests and pushes
 to the main branch.
+
+The workflow configuration is present in the repository.
+Successful local testing does not establish successful
+hosted GitHub Actions execution. Remote CI results must
+be verified against the final integrated revision.
 
 ## 12. Makefile commands
 
@@ -603,6 +945,34 @@ plant-health-ai/
   automated monitoring scheduling and production security
   controls are potential future improvements.
 
+### Responsible use and deployment security
+
+Incorrect predictions could lead to inappropriate agricultural
+decisions. Results should be treated as preliminary screening
+information rather than definitive diagnoses.
+
+The system does not include a dedicated out-of-distribution
+detector or a calibrated guarantee of prediction correctness.
+Quality warnings and confidence thresholds are safeguards,
+not substitutes for expert assessment.
+
+The documented local deployment uses localhost port bindings,
+non-root container execution, read-only model mounts, file
+validation and decoded-image limits.
+
+Application prediction logs store operational metadata
+rather than uploaded image files. This does not constitute
+a comprehensive privacy or security assessment.
+
+Public production deployment would require additional
+controls, including authentication, TLS, infrastructure-level
+request limits, rate limiting, dependency vulnerability
+management, log retention policies and resource isolation.
+
+Broader field validation, delayed-label performance assessment,
+pinned dependency versions and a pinned dataset revision
+would strengthen reliability and reproducibility.
+
 ## 15. Team contributions
 
 The project was developed collaboratively through three
@@ -610,14 +980,34 @@ complementary workstreams:
 
 | Workstream | Primary responsibilities |
 |---|---|
-| Person 1 | Dataset acquisition, validation, training pipeline, experiment tracking and official training experiments |
-| Person 2 | MobileNetV2 implementation, inference predictor, FastAPI, responsive web interface, Docker deployment and integration validation |
-| Person 3 | Model evaluation, monitoring configuration, operational alerts, reporting, incident simulation and CI integration |
+| Person 1 - Ignancya Michelle George | Dataset acquisition, validation, training pipeline, experiment tracking and official training experiments |
+| Person 2 - Juan Sebastian Ramirez Acuña | MobileNetV2 implementation, inference predictor, FastAPI, responsive web interface, Docker deployment, integration validation, reproducibility verification, API security improvements and integrated documentation |
+| Person 3 - Ferdous Pathan | Model evaluation, monitoring configuration, operational alerts, reporting, incident simulation and CI integration |
 
 The final implementation integrates contributions across
 all three workstreams.
 
 ## 16. Resources
+
+### Academic attribution and external resources
+
+The project uses the Makerere AI Lab Beans dataset and
+established open-source machine learning and software
+engineering libraries.
+
+The MobileNetV2 experiment incorporates pretrained ImageNet
+weights through TensorFlow/Keras. The pretrained backbone
+is an external resource rather than a model trained from
+scratch by the project team.
+
+AI-assisted tools, including OpenAI ChatGPT, were used during
+project development to support code validation, debugging
+and implementation refinement. The project implementation
+was tested and verified by the contributors, and all reported
+experimental results are based on actual executions and
+recorded outputs.
+
+### Technical references
 
 - Beans dataset:
   https://huggingface.co/datasets/AI-Lab-Makerere/beans
@@ -635,3 +1025,15 @@ all three workstreams.
   https://docs.pytest.org/
 - GitHub Actions:
   https://docs.github.com/en/actions
+
+- MobileNetV2 architecture:
+
+  https://arxiv.org/abs/1801.04381
+
+- Keras MobileNet models and pretrained weights:
+
+  https://keras.io/api/applications/mobilenet/
+
+- OpenAI ChatGPT:
+
+  https://chatgpt.com/

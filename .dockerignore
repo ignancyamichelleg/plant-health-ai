@@ -46,3 +46,12 @@ docker-compose.override.yml
 # Python packaging outputs
 build/
 dist/
+
+
+# Local databases and archives
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.zip

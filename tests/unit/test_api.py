@@ -4,8 +4,9 @@ import io
 
 import pytest
 from fastapi.testclient import TestClient
-from PIL import Image
+from PIL import Image, ImageDraw
 
+from plant_health.serving import api
 from plant_health.serving.api import create_app
 
 CLASSES = ["angular_leaf_spot", "bean_rust", "healthy"]
@@ -43,6 +44,15 @@ def make_image(format="PNG", color=(80, 150, 50)):
     buffer = io.BytesIO()
     image.save(buffer, format=format)
     return buffer.getvalue()
+
+
+@pytest.fixture(autouse=True)
+def isolate_request_logs(tmp_path, monkeypatch):
+    """Prevent HTTP tests from contaminating operational logs."""
+    monkeypatch.setenv(
+        "PLANT_HEALTH_REQUEST_LOG",
+        str(tmp_path / "requests.jsonl"),
+    )
 
 
 @pytest.fixture
@@ -157,7 +167,7 @@ def test_low_quality_image(client):
     assert response.json()["status"] == "low_quality"
 
 
-def test_uncertain_prediction():
+def test_low_quality_takes_precedence_over_uncertainty():
     app = create_app(predictor=FakePredictor(confidence=0.5))
 
     with TestClient(app) as client:
@@ -235,3 +245,92 @@ def test_prediction_creates_request_log(client, tmp_path, monkeypatch):
     assert record["latency_ms"] >= 0
     assert "ts" in record
     assert len(record) == 11
+
+
+
+def make_sharp_image():
+    """Create a deterministic image with adequate brightness and sharpness."""
+    image = Image.new("RGB", (256, 256))
+    draw = ImageDraw.Draw(image)
+
+    for y in range(0, 256, 8):
+        for x in range(0, 256, 8):
+            shade = 50 if (x // 8 + y // 8) % 2 == 0 else 200
+            draw.rectangle(
+                (x, y, x + 7, y + 7),
+                fill=(shade, shade, shade),
+            )
+
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def test_uncertain_prediction():
+    """Low confidence alone must trigger the uncertainty status."""
+    app = create_app(predictor=FakePredictor(confidence=0.5))
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/predict",
+            files={"file": ("leaf.png", make_sharp_image(), "image/png")},
+        )
+
+    assert response.status_code == 200
+
+    result = response.json()
+
+    assert result["status"] == "uncertain"
+    assert result["confidence"] == pytest.approx(0.5)
+    assert 30 <= result["quality"]["brightness"] <= 230
+    assert result["quality"]["blur"] >= 50
+
+
+def test_high_quality_confident_prediction(client):
+    """Adequate quality and confidence must produce an OK status."""
+    response = client.post(
+        "/predict",
+        files={"file": ("leaf.png", make_sharp_image(), "image/png")},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
+def test_decoded_image_pixel_limit(client, monkeypatch):
+    """Reject excessive decoded dimensions even for small uploads."""
+    monkeypatch.setattr(api, "MAX_IMAGE_PIXELS", 39_999)
+
+    contents = make_image()
+
+    assert len(contents) < api.MAX_UPLOAD_BYTES
+
+    response = client.post(
+        "/predict",
+        files={"file": ("leaf.png", contents, "image/png")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == (
+        "Image exceeds the 25 megapixel limit"
+    )
+
+
+def test_decompression_bomb_error(client, monkeypatch):
+    """Convert Pillow's decompression protection into an HTTP 413."""
+    contents = make_image()
+
+    def reject_image(*args, **kwargs):
+        raise Image.DecompressionBombError("Unsafe image dimensions")
+
+    monkeypatch.setattr(api.Image, "open", reject_image)
+
+    response = client.post(
+        "/predict",
+        files={"file": ("leaf.png", contents, "image/png")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == (
+        "Image dimensions exceed safe decoding limits"
+    )

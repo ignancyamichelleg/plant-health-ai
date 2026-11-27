@@ -20,6 +20,7 @@ from plant_health.serving.request_logger import log_prediction
 from plant_health.serving.schemas import HealthResponse, PredictionResponse
 
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+MAX_IMAGE_PIXELS = 25_000_000
 SUPPORTED_FORMATS = {"JPEG", "PNG", "WEBP"}
 CONTENT_TYPE_TO_FORMAT = {
     "image/jpeg": "JPEG",
@@ -106,9 +107,22 @@ def create_app(predictor=None):
                         status_code=415,
                         detail="Image content type does not match actual format",
                     )
-                image.load()
                 width, height = image.size
+
+                if width * height > MAX_IMAGE_PIXELS:
+                    raise HTTPException(
+                        status_code=413,
+                        detail="Image exceeds the 25 megapixel limit",
+                    )
+
+                image.load()
                 quality = image_quality(image)
+
+        except Image.DecompressionBombError as exc:
+            raise HTTPException(
+                status_code=413,
+                detail="Image dimensions exceed safe decoding limits",
+            ) from exc
 
         except (UnidentifiedImageError, OSError, ValueError) as exc:
             raise HTTPException(
